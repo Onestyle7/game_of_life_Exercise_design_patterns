@@ -36,6 +36,7 @@
 
 import pygame
 import numpy as np
+import pickle
 
 # Initialize Pygame
 pygame.init()
@@ -45,6 +46,14 @@ tick_interval = 1000
 # Screen dimensions
 width, height = 800, 600
 screen = pygame.display.set_mode((width, height))
+
+def save_game_state(file_path, game_state):
+    with open(file_path, 'wb') as file:
+        pickle.dump(game_state, file)
+
+def load_game_state(file_path):
+    with open(file_path, 'rb') as file:
+        return pickle.load(file)  
 
 # Grid dimensions
 n_cells_x, n_cells_y = 40, 30
@@ -64,12 +73,25 @@ green = (0, 255, 0)
 button_width, button_height = 200, 50
 button_x, button_y = (width - button_width) // 2, height - button_height - 10
 
+save_button_x, save_button_y = (width - button_width) // 2, button_y - 120
+load_button_x, load_button_y = (width - button_width) // 2, button_y - 180
+
 def draw_button():
     pygame.draw.rect(screen, green, (button_x, button_y, button_width, button_height))
     font = pygame.font.Font(None, 36)
     text = font.render("Next Generation", True, black)
     text_rect = text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
     screen.blit(text, text_rect)
+
+def draw_save_load_buttons():
+    pygame.draw.rect(screen, green, (save_button_x, save_button_y, button_width, button_height))
+    font = pygame.font.Font(None, 36)
+    text = font.render("Save", True, black)
+    screen.blit(text, (save_button_x + (button_width - text.get_width()) // 2, save_button_y + (button_height - text.get_height()) // 2))
+
+    pygame.draw.rect(screen, green, (load_button_x, load_button_y, button_width, button_height))
+    text = font.render("Load", True, black)
+    screen.blit(text, (load_button_x + (button_width - text.get_width()) // 2, load_button_y + (button_height - text.get_height()) // 2))
 
 def draw_grid():
     for y in range(0, height, cell_height):
@@ -132,6 +154,12 @@ while running:
             # Check if the next generation button is clicked
             elif button_x <= event.pos[0] <= button_x + button_width and button_y <= event.pos[1] <= button_y + button_height:
                 next_generation()
+            # Check if the save button is clicked
+            elif save_button_x <= event.pos[0] <= save_button_x + button_width and save_button_y <= event.pos[1] <= save_button_y + button_height:
+                save_game_state("savefile.pkl", game_state)
+            # Check if the load button is clicked
+            elif load_button_x <= event.pos[0] <= load_button_x + button_width and load_button_y <= event.pos[1] <= load_button_y + button_height:
+                game_state = load_game_state("savefile.pkl")
             else:
                 x, y = event.pos[0] // cell_width, event.pos[1] // cell_height
                 game_state[x, y] = not game_state[x, y]
@@ -146,9 +174,9 @@ while running:
     draw_grid()
     draw_cells()
     draw_button()
-    draw_pause_button()  # Draw the pause/resume button
+    draw_pause_button()
+    draw_save_load_buttons()  # Draw save and load buttons
 
     pygame.display.flip()
 
 pygame.quit()
-
