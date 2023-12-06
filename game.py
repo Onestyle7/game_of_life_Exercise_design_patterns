@@ -38,26 +38,30 @@ import pygame
 import numpy as np
 import pickle
 from datetime import datetime
+from draw import DrawManager
+import os
 
 # Initialize Pygame
 pygame.init()
 
-tick_interval = 2000
+tick_interval = 1000
+save_file_name = "savefile.pkl"
 
 # Screen dimensions
 width, height = 800, 600
 screen = pygame.display.set_mode((width, height))
-
-def get_save_file_name():
-    return datetime.now().strftime("save_%Y%m%d_%H%M%S.pkl")
     
-def save_game_state(file_path, game_state):
-    with open(file_path, 'wb') as file:
+def save_game_state(game_state):
+    with open(save_file_name, 'wb') as file:
         pickle.dump(game_state, file)
 
 def load_game_state(file_path):
-    with open(file_path, 'rb') as file:
-        return pickle.load(file)  
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as file:
+            return pickle.load(file)
+    else:
+        print(f"File {file_path} does not exist.")
+        return None
 
 # Grid dimensions
 n_cells_x, n_cells_y = 40, 30
@@ -75,33 +79,13 @@ green = (0, 255, 0)
 
 # Button dimensions
 button_width, button_height = 200, 50
-button_x, button_y = (width - button_width) // 2, height - button_height - 10
+buttons_y = height - button_height - 10
+button_x = (width - button_width) // 2
+save_button_x = button_x - button_width - 10
+load_button_x = button_x + button_width + 10
+save_buttons_y = buttons_y
+load_buttons_y = buttons_y
 
-save_button_x, save_button_y = (width - button_width) // 2, button_y - 120
-load_button_x, load_button_y = (width - button_width) // 2, button_y - 180
-
-def draw_button():
-    pygame.draw.rect(screen, green, (button_x, button_y, button_width, button_height))
-    font = pygame.font.Font(None, 36)
-    text = font.render("Next Generation", True, black)
-    text_rect = text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
-    screen.blit(text, text_rect)
-
-def draw_save_load_buttons():
-    pygame.draw.rect(screen, green, (save_button_x, save_button_y, button_width, button_height))
-    font = pygame.font.Font(None, 36)
-    text = font.render("Save", True, black)
-    screen.blit(text, (save_button_x + (button_width - text.get_width()) // 2, save_button_y + (button_height - text.get_height()) // 2))
-
-    pygame.draw.rect(screen, green, (load_button_x, load_button_y, button_width, button_height))
-    text = font.render("Load", True, black)
-    screen.blit(text, (load_button_x + (button_width - text.get_width()) // 2, load_button_y + (button_height - text.get_height()) // 2))
-
-def draw_grid():
-    for y in range(0, height, cell_height):
-        for x in range(0, width, cell_width):
-            cell = pygame.Rect(x, y, cell_width, cell_height)
-            pygame.draw.rect(screen, gray, cell, 1)
 
 def next_generation():
     global game_state
@@ -125,27 +109,16 @@ def next_generation():
 
     game_state = new_state
 
-def draw_cells():
-    for y in range(n_cells_y):
-        for x in range(n_cells_x):
-            cell = pygame.Rect(x * cell_width, y * cell_height, cell_width, cell_height)
-            if game_state[x, y] == 1:
-                pygame.draw.rect(screen, black, cell)
+draw_manager = DrawManager(screen)
 
 running = True
 #Track time since last update
 last_update_time = 0
 #initialization of the pause state
 is_paused = False
-pause_button_x, pause_button_y = (width - button_width) // 2, button_y - 60  # Adjust the position as needed
+pause_button_x, pause_buttons_y = (width - button_width) // 2, buttons_y - 60
 
-def draw_pause_button():
-    text = "Pause" if not is_paused else "Resume"
-    pygame.draw.rect(screen, green, ( pause_button_x, pause_button_y, button_width, button_height))
-    font=pygame.font.Font(None, 36)
-    text_surface = font.render(text, True, black)
-    text_rect = text_surface.get_rect(center=(pause_button_x + button_width // 2, pause_button_y + button_height // 2))
-    screen.blit(text_surface, text_rect)
+
 
 while running:
     for event in pygame.event.get():
@@ -155,33 +128,36 @@ while running:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
             # Check if the pause button is clicked
-            if pause_button_x <= event.pos[0] <= pause_button_x + button_width and pause_button_y <= event.pos[1] <= pause_button_y + button_height:
+            if pause_button_x <= event.pos[0] <= pause_button_x + button_width and pause_buttons_y <= event.pos[1] <= pause_buttons_y + button_height:
                 is_paused = not is_paused
             # Check if the next generation button is clicked
-            elif button_x <= event.pos[0] <= button_x + button_width and button_y <= event.pos[1] <= button_y + button_height:
+            elif button_x <= event.pos[0] <= button_x + button_width and buttons_y <= event.pos[1] <= buttons_y + button_height:
                 next_generation()
             # Check if the save button is clicked
-            elif save_button_x <= event.pos[0] <= save_button_x + button_width and save_button_y <= event.pos[1] <= save_button_y + button_height:
-                save_game_state(get_save_file_name(), game_state)
+            elif save_button_x <= event.pos[0] <= save_button_x + button_width and save_buttons_y <= event.pos[1] <= save_buttons_y + button_height:
+                save_game_state(game_state)
             # Check if the load button is clicked
-            elif load_button_x <= event.pos[0] <= load_button_x + button_width and load_button_y <= event.pos[1] <= load_button_y + button_height:
-                game_state = load_game_state("savefile.pkl")
+            elif load_button_x <= event.pos[0] <= load_button_x + button_width and load_buttons_y <= event.pos[1] <= load_buttons_y + button_height:
+                 loaded_state = load_game_state("savefile.pkl")
+                 if loaded_state is not None:
+                    game_state = loaded_state
             else:
                 x, y = event.pos[0] // cell_width, event.pos[1] // cell_height
                 game_state[x, y] = not game_state[x, y]
 
-    if not is_paused:
-        current_time = pygame.time.get_ticks()
-        if current_time - last_update_time > tick_interval:
-            next_generation()
-            last_update_time = current_time
+        if not is_paused:
+            current_time = pygame.time.get_ticks()
+            if current_time - last_update_time > tick_interval:
+                next_generation()
+                last_update_time = current_time
 
     screen.fill(white)
-    draw_grid()
-    draw_cells()
-    draw_button()
-    draw_pause_button()
-    draw_save_load_buttons()  # Draw save and load buttons
+    draw_manager.draw_grid(width, height, cell_width, cell_height, gray)
+    draw_manager.draw_cells(game_state, cell_width, cell_height, n_cells_x, n_cells_y)
+    draw_manager.draw_button(button_x, buttons_y, button_width, button_height, "Next Generation", green, black)
+    draw_manager.draw_button(save_button_x, save_buttons_y, button_width, button_height, "Save", green, black)
+    draw_manager.draw_button(load_button_x, load_buttons_y, button_width, button_height, "Load", green, black)
+    draw_manager.draw_button(pause_button_x, pause_buttons_y, button_width, button_height, "Pause" if not is_paused else "Resume", green, black)
 
     pygame.display.flip()
 
