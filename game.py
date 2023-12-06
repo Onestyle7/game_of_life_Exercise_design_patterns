@@ -40,6 +40,8 @@ import numpy as np
 # Initialize Pygame
 pygame.init()
 
+tick_interval = 1000
+
 # Screen dimensions
 width, height = 800, 600
 screen = pygame.display.set_mode((width, height))
@@ -105,22 +107,48 @@ def draw_cells():
                 pygame.draw.rect(screen, black, cell)
 
 running = True
-while running:
-    screen.fill(white)
-    draw_grid()
-    draw_cells()
-    draw_button()
-    pygame.display.flip()
+#Track time since last update
+last_update_time = 0
+#initialization of the pause state
+is_paused = False
+pause_button_x, pause_button_y = (width - button_width) // 2, button_y - 60  # Adjust the position as needed
 
+def draw_pause_button():
+    text = "Pause" if not is_paused else "Resume"
+    pygame.draw.rect(screen, green, ( pause_button_x, pause_button_y, button_width, button_height))
+    font=pygame.font.Font(None, 36)
+    text_surface = font.render(text, True, black)
+    text_rect = text_surface.get_rect(center=(pause_button_x + button_width // 2, pause_button_y + button_height // 2))
+    screen.blit(text_surface, text_rect)
+
+while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if button_x <= event.pos[0] <= button_x + button_width and button_y <= event.pos[1] <= button_y + button_height:
+            # Check if the pause button is clicked
+            if pause_button_x <= event.pos[0] <= pause_button_x + button_width and pause_button_y <= event.pos[1] <= pause_button_y + button_height:
+                is_paused = not is_paused
+            # Check if the next generation button is clicked
+            elif button_x <= event.pos[0] <= button_x + button_width and button_y <= event.pos[1] <= button_y + button_height:
                 next_generation()
             else:
                 x, y = event.pos[0] // cell_width, event.pos[1] // cell_height
                 game_state[x, y] = not game_state[x, y]
+
+    if not is_paused:
+        current_time = pygame.time.get_ticks()
+        if current_time - last_update_time > tick_interval:
+            next_generation()
+            last_update_time = current_time
+
+    screen.fill(white)
+    draw_grid()
+    draw_cells()
+    draw_button()
+    draw_pause_button()  # Draw the pause/resume button
+
+    pygame.display.flip()
 
 pygame.quit()
 
