@@ -37,16 +37,20 @@
 import pygame
 import numpy as np
 import pickle
+from datetime import datetime
 
 # Initialize Pygame
 pygame.init()
 
-tick_interval = 1000
+tick_interval = 2000
 
 # Screen dimensions
 width, height = 800, 600
 screen = pygame.display.set_mode((width, height))
 
+def get_save_file_name():
+    return datetime.now().strftime("save_%Y%m%d_%H%M%S.pkl")
+    
 def save_game_state(file_path, game_state):
     with open(file_path, 'wb') as file:
         pickle.dump(game_state, file)
@@ -146,6 +150,8 @@ def draw_pause_button():
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            if os.path.exists("savefile.pkl"):
+                os.remove("savefile.pkl")
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
             # Check if the pause button is clicked
@@ -156,7 +162,7 @@ while running:
                 next_generation()
             # Check if the save button is clicked
             elif save_button_x <= event.pos[0] <= save_button_x + button_width and save_button_y <= event.pos[1] <= save_button_y + button_height:
-                save_game_state("savefile.pkl", game_state)
+                save_game_state(get_save_file_name(), game_state)
             # Check if the load button is clicked
             elif load_button_x <= event.pos[0] <= load_button_x + button_width and load_button_y <= event.pos[1] <= load_button_y + button_height:
                 game_state = load_game_state("savefile.pkl")
